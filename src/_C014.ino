@@ -576,8 +576,7 @@ bool CPlugin_014(CPlugin::Function function, struct EventStruct *event, String& 
             {
               taskIndex=findTaskIndexByName(nodeName);
               deviceIndex_t deviceIndex = getDeviceIndex_from_TaskIndex(taskIndex);
-              taskVarIndex_t taskVarIndex = event->Par2 - 1;
-              if (validDeviceIndex(deviceIndex) && validTaskVarIndex(taskVarIndex)) {
+              if (validDeviceIndex(deviceIndex)) {
                 int pluginID=Device[deviceIndex].Number;
 
                 if (pluginID==33) // Plugin 33 Dummy Device
@@ -597,6 +596,8 @@ bool CPlugin_014(CPlugin::Function function, struct EventStruct *event, String& 
                   valueNr = findDeviceValueIndexByName(valueName, taskIndex);
                   if (valueNr != VARS_PER_TASK) {
                     cmd = F("event,");
+                    cmd += nodeName;
+                    cmd += "#";
                     cmd += valueName;
                     cmd += "=";
                     if (Settings.TaskDevicePluginConfig[taskIndex][valueNr]==3) { // Quote Sting parameters. PLUGIN_086_VALUE_STRING
@@ -605,19 +606,30 @@ bool CPlugin_014(CPlugin::Function function, struct EventStruct *event, String& 
                       cmd += '"';
                     } else {
                       if (Settings.TaskDevicePluginConfig[taskIndex][valueNr]==4) { // Enumeration parameter, find Number of item. PLUGIN_086_VALUE_ENUM
-                        String enumList = ExtraTaskSettings.TaskDeviceFormula[taskVarIndex];
-                        int i = 1;
-                        while (parseString(enumList,i)!="") { // lookup result in enum List
-                          if (parseString(enumList,i)==event->String2) break;
-                          i++;
+                        taskVarIndex_t taskVarIndex = event->Par2 - 1;
+                        if (validTaskVarIndex(taskVarIndex)) {
+                          int i = 1;
+                          String enumList = ExtraTaskSettings.TaskDeviceFormula[taskVarIndex];
+                          while (parseString(enumList,i)!="") { // lookup result in enum List
+                            if (parseString(enumList,i)==event->String2) break;
+                            i++;
+                          }
+                          cmd += i;
+                          cmd += ",";
                         }
-                        cmd += i;
-                        cmd += ",";
                       }
                       cmd += event->String2;
                     }
                     validTopic = true;
+                  } else {
+                    addLog(LOG_LEVEL_INFO, log+ F(", deviceIndex=") + (deviceIndex) + F(" NO SUCH VALUE NAME"));
                   }
+                } else {
+                  addLog(LOG_LEVEL_INFO, log+ F(", pluginID=") + (pluginID) + F(" PLUGIN UNSUPPORTED"));
+                }
+              } else {
+                if (loglevelActiveFor(LOG_LEVEL_INFO)) {
+                  addLog(LOG_LEVEL_INFO, log+ F(" NO SUCH DEVICE"));
                 }
               }
             }
